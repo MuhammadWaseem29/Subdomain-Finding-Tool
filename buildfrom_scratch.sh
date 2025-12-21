@@ -185,8 +185,13 @@ run_subdominator_single() {
         wait "$subdominator_pid" 2>/dev/null
     fi
     
-    # Copy to output file and display
-    cp "$temp_output" "$output_file" 2>/dev/null || cat "$temp_output" > "$output_file"
+    # Filter output to only include valid subdomains (remove banner, info messages, etc.)
+    grep -vE '^\s*$|^\[INFO\]:|^\[version\]:|^\s*[|_\\/]{4,}|^\s*-{3,}|^\s*RevoltSecurities\s*$|^\*\.|^Z2F' "$temp_output" 2>/dev/null | \
+    grep -E '^[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$' | \
+    grep -vE '[|_\\/]{3,}' > "$output_file" 2>/dev/null || \
+    grep -E '^[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$' "$temp_output" 2>/dev/null | grep -vE '^\s*[|_\\/]{3,}|^\*\.|^Z2F' > "$output_file"
+    
+    # Display filtered output
     cat "$output_file"
 }
 
@@ -235,8 +240,19 @@ run_subdominator_file() {
         wait "$subdominator_pid" 2>/dev/null
     fi
     
-    # Display output if file was created
+    # Filter output file to only include valid subdomains (remove banner, info messages, etc.)
     if [ -f "$output_file" ]; then
+        # Create a filtered version
+        local filtered_output="$TEMP_DIR/subdominator_filtered.txt"
+        grep -vE '^\s*$|^\[INFO\]:|^\[version\]:|^\s*[|_\\/]{4,}|^\s*-{3,}|^\s*RevoltSecurities\s*$|^\*\.|^Z2F' "$output_file" 2>/dev/null | \
+        grep -E '^[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$' | \
+        grep -vE '[|_\\/]{3,}' > "$filtered_output" 2>/dev/null || \
+        grep -E '^[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$' "$output_file" 2>/dev/null | grep -vE '^\s*[|_\\/]{3,}|^\*\.|^Z2F' > "$filtered_output"
+        
+        # Replace original with filtered version
+        mv "$filtered_output" "$output_file" 2>/dev/null || cp "$filtered_output" "$output_file"
+        
+        # Display filtered output
         cat "$output_file"
     fi
 }
