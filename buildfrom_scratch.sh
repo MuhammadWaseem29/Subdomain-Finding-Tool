@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Build from Scratch - Subfinder, Chaos & Subdominator Runner ✨❤️
-# Simple script to run subfinder, chaos, and subdominator with user-provided domain or domains file
+# Simple script to run subfinder, subdominator, and chaos with user-provided domain or domains file
 # Usage: ./buildfrom_scratch.sh -d example.com
 #        ./buildfrom_scratch.sh -d example.com -o output.txt
 #        ./buildfrom_scratch.sh -dL domains.txt
@@ -154,22 +154,22 @@ if [ -n "$domain" ]; then
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Running Chaos ❤️${NC}"
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        chaos -d "$domain" | tee "$CHAOS_OUTPUT"
-        
-        echo ""
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Running Subdominator ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         subdominator -d "$domain" -all | tee "$SUBDOMINATOR_OUTPUT"
         
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Running Chaos ❤️${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        chaos -d "$domain" | tee "$CHAOS_OUTPUT"
+        
         # Merge results from all three tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, chaos, and subdominator ✨${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$CHAOS_OUTPUT" "$SUBDOMINATOR_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
@@ -182,8 +182,8 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${BRIGHT_WHITE}${BOLD}📊 Results Summary ❤️${NC}                                      ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╠════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
-        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Merged results saved to:${NC} ${BRIGHT_CYAN}${BOLD}$output_file${NC} ${CYAN}❤️${NC}        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
@@ -191,22 +191,40 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Subfinder Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subfinder -d "$domain" -all -v
-        
-        echo ""
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Chaos Results ❤️${NC}"
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        chaos -d "$domain"
+        subfinder -d "$domain" -all -v | tee "$SUBFINDER_OUTPUT"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Subdominator Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -d "$domain" -all
+        subdominator -d "$domain" -all | tee "$SUBDOMINATOR_OUTPUT"
         
         echo ""
-        echo -e "${BRIGHT_GREEN}${BOLD}✓ All three tools completed ✨❤️${NC} ${CYAN}(use -o <file> to save merged results)${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Chaos Results ❤️${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        chaos -d "$domain" | tee "$CHAOS_OUTPUT"
+        
+        # Merge and count results
+        MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$MERGED_OUTPUT"
+        
+        # Count results
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        total_count=$(wc -l < "$MERGED_OUTPUT" 2>/dev/null || echo "0")
+        
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${BRIGHT_WHITE}${BOLD}📊 Results Summary ❤️${NC}                                      ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}╠════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}💡 Use -o <file> to save merged results ❤️${NC}                      ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     fi
 else
     # Domains file mode
@@ -224,6 +242,16 @@ else
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Running Subdominator ✨${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        subdominator -dL "$domains_file" -all -V -o "$SUBDOMINATOR_OUTPUT"
+        # Display results if file was created
+        if [ -f "$SUBDOMINATOR_OUTPUT" ]; then
+            cat "$SUBDOMINATOR_OUTPUT"
+        fi
+        
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Running Chaos for each domain ❤️${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         > "$CHAOS_OUTPUT"  # Create empty file
@@ -235,22 +263,12 @@ else
             fi
         done < "$domains_file"
         
-        echo ""
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Running Subdominator ✨${NC}"
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -dL "$domains_file" -all -V -o "$SUBDOMINATOR_OUTPUT"
-        # Display results if file was created
-        if [ -f "$SUBDOMINATOR_OUTPUT" ]; then
-            cat "$SUBDOMINATOR_OUTPUT"
-        fi
-        
         # Merge results from all three tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, chaos, and subdominator ✨${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$CHAOS_OUTPUT" "$SUBDOMINATOR_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
@@ -263,8 +281,8 @@ else
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${BRIGHT_WHITE}${BOLD}📊 Results Summary ❤️${NC}                                      ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╠════════════════════════════════════════════════════════════╣${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
-        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Merged results saved to:${NC} ${BRIGHT_CYAN}${BOLD}$output_file${NC} ${CYAN}❤️${NC}        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
@@ -272,27 +290,50 @@ else
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Subfinder Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subfinder -dL "$domains_file" -all -v
-        
-        echo ""
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Chaos Results ❤️${NC}"
-        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        while IFS= read -r line; do
-            if [ -n "$line" ]; then
-                echo -e "${BRIGHT_YELLOW}${BOLD}🎯 Processing:${NC} ${BRIGHT_CYAN}$line${NC} ${BRIGHT_PURPLE}❤️${NC}"
-                chaos -d "$line"
-                echo ""
-            fi
-        done < "$domains_file"
+        subfinder -dL "$domains_file" -all -v | tee "$SUBFINDER_OUTPUT"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Subdominator Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -dL "$domains_file" -all -V
+        subdominator -dL "$domains_file" -all -V -o "$SUBDOMINATOR_OUTPUT"
+        # Display results if file was created
+        if [ -f "$SUBDOMINATOR_OUTPUT" ]; then
+            cat "$SUBDOMINATOR_OUTPUT"
+        fi
         
         echo ""
-        echo -e "${BRIGHT_GREEN}${BOLD}✓ All three tools completed ✨❤️${NC} ${CYAN}(use -o <file> to save merged results)${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Chaos Results ❤️${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        > "$CHAOS_OUTPUT"  # Create empty file
+        while IFS= read -r line; do
+            if [ -n "$line" ]; then
+                echo -e "${BRIGHT_YELLOW}${BOLD}🎯 Processing:${NC} ${BRIGHT_CYAN}$line${NC} ${BRIGHT_PURPLE}❤️${NC}"
+                chaos -d "$line" | tee -a "$CHAOS_OUTPUT"
+                echo ""
+            fi
+        done < "$domains_file"
+        
+        # Merge and count results
+        MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$MERGED_OUTPUT"
+        
+        # Count results
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        total_count=$(wc -l < "$MERGED_OUTPUT" 2>/dev/null || echo "0")
+        
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${BRIGHT_WHITE}${BOLD}📊 Results Summary ❤️${NC}                                      ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}╠════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}💡 Use -o <file> to save merged results ❤️${NC}                      ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
     fi
 fi
