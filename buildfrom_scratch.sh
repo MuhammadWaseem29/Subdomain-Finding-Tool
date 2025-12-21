@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Build from Scratch - Subfinder, Chaos & Subdominator Runner ✨❤️
-# Simple script to run subfinder, subdominator, and chaos with user-provided domain or domains file
+# Build from Scratch - Subfinder, Subdominator, Chaos & Assetfinder Runner ✨❤️
+# Simple script to run subfinder, subdominator, chaos, and assetfinder with user-provided domain or domains file
 # Usage: ./buildfrom_scratch.sh -d example.com
 #        ./buildfrom_scratch.sh -d example.com -o output.txt
 #        ./buildfrom_scratch.sh -dL domains.txt
@@ -56,6 +56,15 @@ if ! command -v subdominator >/dev/null 2>&1; then
     echo -e "${CYAN}  pip install --upgrade git+https://github.com/RevoltSecurities/Subdominator --break-system-packages${NC}"
     exit 1
 fi
+
+# Check if assetfinder is installed
+if ! command -v assetfinder >/dev/null 2>&1; then
+    echo -e "${BRIGHT_RED}${BOLD}❌ Error:${NC} ${RED}assetfinder is not installed or not in PATH${NC}"
+    echo -e "${YELLOW}Please install assetfinder first:${NC}"
+    echo -e "${CYAN}  go install github.com/tomnomnom/assetfinder@latest${NC}"
+    exit 1
+fi
+
 
 # Check if arguments are provided
 if [ $# -eq 0 ]; then
@@ -130,6 +139,7 @@ TEMP_DIR=$(mktemp -d)
 SUBFINDER_OUTPUT="$TEMP_DIR/subfinder_results.txt"
 CHAOS_OUTPUT="$TEMP_DIR/chaos_results.txt"
 SUBDOMINATOR_OUTPUT="$TEMP_DIR/subdominator_results.txt"
+ASSETFINDER_OUTPUT="$TEMP_DIR/assetfinder_results.txt"
 
 # Cleanup function
 cleanup() {
@@ -267,12 +277,21 @@ if [ -n "$domain" ]; then
         echo ""
         echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
-        # Merge results from all three tools
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}🎯 Running Assetfinder ✨${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        assetfinder --subs-only "$domain" | tee "$ASSETFINDER_OUTPUT"
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_CYAN}${BOLD}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}"
+        
+        # Merge results from all four tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, chaos, and assetfinder ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" "$ASSETFINDER_OUTPUT" 2>/dev/null | sort -u > "$output_file"
         
         # Count total unique results (use already calculated counts if available, otherwise recalculate)
         if [ -z "$subfinder_count" ]; then
@@ -284,6 +303,9 @@ if [ -n "$domain" ]; then
         if [ -z "$subdominator_count" ]; then
             subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
         fi
+        if [ -z "$assetfinder_count" ]; then
+            assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
         total_count=$(wc -l < "$output_file" 2>/dev/null || echo "0")
         total_count=$(echo "$total_count" | tr -d ' ')
         
@@ -294,6 +316,7 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Merged results saved to:${NC} ${BRIGHT_CYAN}${BOLD}$output_file${NC} ${CYAN}❤️${NC}        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
@@ -324,14 +347,24 @@ if [ -n "$domain" ]; then
         echo ""
         echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}🎯 Assetfinder Results ✨${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        assetfinder --subs-only "$domain" | tee "$ASSETFINDER_OUTPUT"
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_CYAN}${BOLD}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}"
+        
         # Merge and count results
         MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" "$ASSETFINDER_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
         chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
         subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null || echo "0")
         total_count=$(wc -l < "$MERGED_OUTPUT" 2>/dev/null || echo "0")
         
         echo ""
@@ -341,6 +374,7 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}💡 Use -o <file> to save merged results ❤️${NC}                      ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
@@ -387,12 +421,28 @@ else
         echo ""
         echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
-        # Merge results from all three tools
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}🎯 Running Assetfinder for each domain ✨${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        > "$ASSETFINDER_OUTPUT"  # Create empty file
+        while IFS= read -r line; do
+            if [ -n "$line" ]; then
+                echo -e "${BRIGHT_YELLOW}${BOLD}🎯 Processing with Assetfinder:${NC} ${BRIGHT_CYAN}$line${NC} ${BRIGHT_CYAN}✨${NC}"
+                assetfinder --subs-only "$line" | tee -a "$ASSETFINDER_OUTPUT"
+                echo ""
+            fi
+        done < "$domains_file"
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_CYAN}${BOLD}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}"
+        
+        # Merge results from all four tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, chaos, and assetfinder ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" "$ASSETFINDER_OUTPUT" 2>/dev/null | sort -u > "$output_file"
         
         # Count total unique results (use already calculated counts if available, otherwise recalculate)
         if [ -z "$subfinder_count" ]; then
@@ -404,6 +454,9 @@ else
         if [ -z "$subdominator_count" ]; then
             subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
         fi
+        if [ -z "$assetfinder_count" ]; then
+            assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
         total_count=$(wc -l < "$output_file" 2>/dev/null || echo "0")
         total_count=$(echo "$total_count" | tr -d ' ')
         
@@ -414,6 +467,7 @@ else
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Merged results saved to:${NC} ${BRIGHT_CYAN}${BOLD}$output_file${NC} ${CYAN}❤️${NC}        ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
@@ -451,14 +505,31 @@ else
         echo ""
         echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
+        echo ""
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${BRIGHT_CYAN}${BOLD}🎯 Assetfinder Results ✨${NC}"
+        echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        > "$ASSETFINDER_OUTPUT"  # Create empty file
+        while IFS= read -r line; do
+            if [ -n "$line" ]; then
+                echo -e "${BRIGHT_YELLOW}${BOLD}🎯 Processing:${NC} ${BRIGHT_CYAN}$line${NC} ${BRIGHT_CYAN}✨${NC}"
+                assetfinder --subs-only "$line" | tee -a "$ASSETFINDER_OUTPUT"
+                echo ""
+            fi
+        done < "$domains_file"
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_CYAN}${BOLD}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}"
+        
         # Merge and count results
         MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" "$ASSETFINDER_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
         chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
         subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        assetfinder_count=$(wc -l < "$ASSETFINDER_OUTPUT" 2>/dev/null || echo "0")
         total_count=$(wc -l < "$MERGED_OUTPUT" 2>/dev/null || echo "0")
         
         echo ""
@@ -468,6 +539,7 @@ else
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subfinder found:${NC} ${BRIGHT_GREEN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Subdominator found:${NC} ${BRIGHT_YELLOW}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Chaos found:${NC} ${BRIGHT_PURPLE}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}                        ${BRIGHT_GREEN}${BOLD}║${NC}"
+        echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Assetfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$assetfinder_count${NC} ${CYAN}subdomains ✨${NC}                ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}✓ Total unique subdomains:${NC} ${BRIGHT_YELLOW}${BOLD}$total_count${NC} ${CYAN}✨${NC}                    ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}║${NC}  ${CYAN}💡 Use -o <file> to save merged results ❤️${NC}                      ${BRIGHT_GREEN}${BOLD}║${NC}"
         echo -e "${BRIGHT_GREEN}${BOLD}╚════════════════════════════════════════════════════════════╝${NC}"
