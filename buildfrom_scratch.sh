@@ -134,8 +134,102 @@ SUBDOMINATOR_OUTPUT="$TEMP_DIR/subdominator_results.txt"
 # Cleanup function
 cleanup() {
     rm -rf "$TEMP_DIR" 2>/dev/null
+    # Kill any remaining subdominator processes
+    pkill -f "subdominator" 2>/dev/null
 }
 trap cleanup EXIT
+
+# Function to run subdominator with auto-kill after completion
+run_subdominator_single() {
+    local domain="$1"
+    local output_file="$2"
+    
+    # Create a temporary file for capturing output
+    local temp_output="$TEMP_DIR/subdominator_temp.txt"
+    
+    # Run subdominator in background and capture PID
+    subdominator -d "$domain" -all > "$temp_output" 2>&1 &
+    local subdominator_pid=$!
+    
+    # Monitor for completion or timeout
+    local timeout=300  # 5 minutes max
+    local elapsed=0
+    local check_interval=2
+    
+    while kill -0 "$subdominator_pid" 2>/dev/null && [ $elapsed -lt $timeout ]; do
+        sleep $check_interval
+        elapsed=$((elapsed + check_interval))
+        
+        # Check if subdominator has completed (looking for completion message)
+        if grep -q "Happy Hacking root" "$temp_output" 2>/dev/null; then
+            sleep 1  # Give it a moment to finish writing
+            kill "$subdominator_pid" 2>/dev/null
+            wait "$subdominator_pid" 2>/dev/null
+            break
+        fi
+    done
+    
+    # If still running after timeout, force kill
+    if kill -0 "$subdominator_pid" 2>/dev/null; then
+        kill -9 "$subdominator_pid" 2>/dev/null
+        wait "$subdominator_pid" 2>/dev/null
+    fi
+    
+    # Copy to output file and display
+    cp "$temp_output" "$output_file" 2>/dev/null || cat "$temp_output" > "$output_file"
+    cat "$output_file"
+}
+
+# Function to run subdominator with file list and auto-kill after completion
+run_subdominator_file() {
+    local domains_file="$1"
+    local output_file="$2"
+    
+    # Create a temporary file to capture stderr/stdout for completion detection
+    local temp_log="$TEMP_DIR/subdominator_log.txt"
+    
+    # Run subdominator in background and capture PID
+    subdominator -dL "$domains_file" -all -V -o "$output_file" > "$temp_log" 2>&1 &
+    local subdominator_pid=$!
+    
+    # Monitor for completion or timeout
+    local timeout=600  # 10 minutes max for file list
+    local elapsed=0
+    local check_interval=3
+    
+    while kill -0 "$subdominator_pid" 2>/dev/null && [ $elapsed -lt $timeout ]; do
+        sleep $check_interval
+        elapsed=$((elapsed + check_interval))
+        
+        # Check if subdominator has completed (looking for completion message)
+        if grep -q "Happy Hacking root" "$temp_log" 2>/dev/null || grep -q "Happy Hacking root" "$output_file" 2>/dev/null; then
+            sleep 2  # Give it a moment to finish writing
+            kill "$subdominator_pid" 2>/dev/null
+            wait "$subdominator_pid" 2>/dev/null
+            break
+        fi
+    done
+    
+    # If still running, check one more time
+    if kill -0 "$subdominator_pid" 2>/dev/null; then
+        sleep 3
+        if grep -q "Happy Hacking root" "$temp_log" 2>/dev/null || grep -q "Happy Hacking root" "$output_file" 2>/dev/null; then
+            kill "$subdominator_pid" 2>/dev/null
+            wait "$subdominator_pid" 2>/dev/null
+        fi
+    fi
+    
+    # Force kill if still running
+    if kill -0 "$subdominator_pid" 2>/dev/null; then
+        kill -9 "$subdominator_pid" 2>/dev/null
+        wait "$subdominator_pid" 2>/dev/null
+    fi
+    
+    # Display output if file was created
+    if [ -f "$output_file" ]; then
+        cat "$output_file"
+    fi
+}
 
 # Run tools based on input type
 if [ -n "$domain" ]; then
@@ -151,31 +245,47 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Running Subfinder ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         subfinder -d "$domain" -all -v | tee "$SUBFINDER_OUTPUT"
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}✓ Subfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Running Subdominator ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -d "$domain" -all | tee "$SUBDOMINATOR_OUTPUT"
+        run_subdominator_single "$domain" "$SUBDOMINATOR_OUTPUT"
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_YELLOW}${BOLD}✓ Subdominator found:${NC} ${BRIGHT_CYAN}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Running Chaos ❤️${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         chaos -d "$domain" | tee "$CHAOS_OUTPUT"
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
         # Merge results from all three tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$output_file"
         
-        # Count results
-        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
-        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
-        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        # Count total unique results (use already calculated counts if available, otherwise recalculate)
+        if [ -z "$subfinder_count" ]; then
+            subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
+        if [ -z "$chaos_count" ]; then
+            chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
+        if [ -z "$subdominator_count" ]; then
+            subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
         total_count=$(wc -l < "$output_file" 2>/dev/null || echo "0")
+        total_count=$(echo "$total_count" | tr -d ' ')
         
         echo ""
         echo -e "${BRIGHT_GREEN}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -192,22 +302,31 @@ if [ -n "$domain" ]; then
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Subfinder Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         subfinder -d "$domain" -all -v | tee "$SUBFINDER_OUTPUT"
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}✓ Subfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Subdominator Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -d "$domain" -all | tee "$SUBDOMINATOR_OUTPUT"
+        run_subdominator_single "$domain" "$SUBDOMINATOR_OUTPUT"
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_YELLOW}${BOLD}✓ Subdominator found:${NC} ${BRIGHT_CYAN}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_PURPLE}${BOLD}🌀 Chaos Results ❤️${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         chaos -d "$domain" | tee "$CHAOS_OUTPUT"
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
         # Merge and count results
         MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$MERGED_OUTPUT"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
@@ -239,16 +358,18 @@ else
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Running Subfinder ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         subfinder -dL "$domains_file" -all -v | tee "$SUBFINDER_OUTPUT"
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}✓ Subfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Running Subdominator ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -dL "$domains_file" -all -V -o "$SUBDOMINATOR_OUTPUT"
-        # Display results if file was created
-        if [ -f "$SUBDOMINATOR_OUTPUT" ]; then
-            cat "$SUBDOMINATOR_OUTPUT"
-        fi
+        run_subdominator_file "$domains_file" "$SUBDOMINATOR_OUTPUT"
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_YELLOW}${BOLD}✓ Subdominator found:${NC} ${BRIGHT_CYAN}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -262,19 +383,29 @@ else
                 echo ""
             fi
         done < "$domains_file"
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
         # Merge results from all three tools
         echo ""
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_CYAN}${BOLD}✨ Merging results from subfinder, subdominator, and chaos ✨${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$output_file"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$output_file"
         
-        # Count results
-        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
-        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null || echo "0")
-        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null || echo "0")
+        # Count total unique results (use already calculated counts if available, otherwise recalculate)
+        if [ -z "$subfinder_count" ]; then
+            subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
+        if [ -z "$chaos_count" ]; then
+            chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
+        if [ -z "$subdominator_count" ]; then
+            subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        fi
         total_count=$(wc -l < "$output_file" 2>/dev/null || echo "0")
+        total_count=$(echo "$total_count" | tr -d ' ')
         
         echo ""
         echo -e "${BRIGHT_GREEN}${BOLD}╔════════════════════════════════════════════════════════════╗${NC}"
@@ -291,16 +422,18 @@ else
         echo -e "${BRIGHT_GREEN}${BOLD}🔍 Subfinder Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         subfinder -dL "$domains_file" -all -v | tee "$SUBFINDER_OUTPUT"
+        subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_GREEN}${BOLD}✓ Subfinder found:${NC} ${BRIGHT_CYAN}${BOLD}$subfinder_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${BRIGHT_YELLOW}${BOLD}⚡ Subdominator Results ✨${NC}"
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        subdominator -dL "$domains_file" -all -V -o "$SUBDOMINATOR_OUTPUT"
-        # Display results if file was created
-        if [ -f "$SUBDOMINATOR_OUTPUT" ]; then
-            cat "$SUBDOMINATOR_OUTPUT"
-        fi
+        run_subdominator_file "$domains_file" "$SUBDOMINATOR_OUTPUT"
+        subdominator_count=$(wc -l < "$SUBDOMINATOR_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_YELLOW}${BOLD}✓ Subdominator found:${NC} ${BRIGHT_CYAN}${BOLD}$subdominator_count${NC} ${CYAN}subdomains ✨${NC}"
         
         echo ""
         echo -e "${BRIGHT_BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
@@ -314,10 +447,13 @@ else
                 echo ""
             fi
         done < "$domains_file"
+        chaos_count=$(wc -l < "$CHAOS_OUTPUT" 2>/dev/null | tr -d ' ' || echo "0")
+        echo ""
+        echo -e "${BRIGHT_PURPLE}${BOLD}✓ Chaos found:${NC} ${BRIGHT_CYAN}${BOLD}$chaos_count${NC} ${CYAN}subdomains ❤️${NC}"
         
         # Merge and count results
         MERGED_OUTPUT="$TEMP_DIR/merged_results.txt"
-        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | grep -E '^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$' | sort -u > "$MERGED_OUTPUT"
+        cat "$SUBFINDER_OUTPUT" "$SUBDOMINATOR_OUTPUT" "$CHAOS_OUTPUT" 2>/dev/null | sort -u > "$MERGED_OUTPUT"
         
         # Count results
         subfinder_count=$(wc -l < "$SUBFINDER_OUTPUT" 2>/dev/null || echo "0")
