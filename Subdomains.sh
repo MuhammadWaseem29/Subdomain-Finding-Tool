@@ -61,8 +61,15 @@ if [ -d "/root/go/bin" ]; then
     export PATH="$PATH:/root/go/bin"
 fi
 
-# Set ProjectDiscovery API Key
-export PDCP_API_KEY="45c4a78e-957e-486f-80b9-f506362d9ae4"
+# Set ProjectDiscovery API Key (optional - users should set their own)
+# Get your free API key at: https://chaos.projectdiscovery.io
+# export PDCP_API_KEY="your-api-key-here"
+if [ -z "$PDCP_API_KEY" ]; then
+    # Try to load from environment or config file
+    if [ -f ~/.chaos_api_key ]; then
+        export PDCP_API_KEY=$(cat ~/.chaos_api_key 2>/dev/null)
+    fi
+fi
 
 # Color Definitions
 RED='\033[0;31m'

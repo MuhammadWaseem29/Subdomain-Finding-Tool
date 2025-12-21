@@ -57,7 +57,7 @@ This will:
 - Install Go and Python dependencies
 - Install all 7 integrated tools
 - Configure PATH variables
-- Set up Chaos API key (pre-configured)
+- Guide you through Chaos API key setup (optional)
 
 ### Manual Installation
 
@@ -158,7 +158,7 @@ FINDER provides comprehensive output including:
 
 ### Chaos API Key
 
-FINDER comes with a pre-configured Chaos API key. To set your own:
+Chaos API key is optional but recommended for better results. To set your own:
 
 ```bash
 ./Subdomains.sh --setup-chaos
@@ -274,9 +274,34 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - [aboul3la](https://github.com/aboul3la) for Sublist3r
 - [m8sec](https://github.com/m8sec) for subscraper
 
-## ⚠️ Disclaimer
+## 🔒 Security & Privacy
 
-This tool is for authorized security testing and research purposes only. Users are responsible for ensuring they have proper authorization before testing any domain. The authors and contributors are not responsible for any misuse or damage caused by this tool.
+### Important Security Notes
+
+- **No Hardcoded Credentials**: This tool does not include any hardcoded API keys or credentials
+- **API Keys**: Users must provide their own API keys for services like Chaos
+- **Data Privacy**: All enumeration data stays local unless explicitly saved by the user
+- **Rate Limiting**: Be mindful of rate limits when enumerating multiple domains
+
+### Best Practices
+
+1. **Always get authorization** before testing any domain
+2. **Respect rate limits** of target services
+3. **Use responsibly** - Only test domains you own or have explicit permission to test
+4. **Keep API keys secure** - Never commit API keys to version control
+5. **Review output** - Verify results before taking action
+
+## ⚠️ Legal Disclaimer
+
+**IMPORTANT**: This tool is for **authorized security testing and research purposes only**.
+
+- Users are **solely responsible** for ensuring they have proper authorization before testing any domain
+- Unauthorized access to computer systems is illegal and may result in criminal prosecution
+- The authors and contributors are **not responsible** for any misuse or damage caused by this tool
+- Use this tool only on systems you own or have explicit written permission to test
+- Always comply with applicable laws and regulations in your jurisdiction
+
+**By using this tool, you agree to use it responsibly and legally.**
 
 ## 📞 Support
 
