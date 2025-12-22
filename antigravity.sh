@@ -128,8 +128,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
 fi
 
 if [[ -n "$OUTPUT_FILE" ]]; then
-    CMD="$CMD -o $OUTPUT_FILE"
-    echo -e " ${CYAN}✨ Output File: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
+    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
 fi
 
 echo -e ""
@@ -161,8 +160,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
 fi
 
 if [[ -n "$OUTPUT_FILE" ]]; then
-    SUBDOM_ARGS="$SUBDOM_ARGS -o $OUTPUT_FILE"
-    echo -e " ${CYAN}✨ Output File: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
+    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
 fi
 
 echo -e ""
@@ -228,8 +226,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
 fi
 
 if [[ -n "$OUTPUT_FILE" ]]; then
-    CMD_CHAOS="$CMD_CHAOS -o $OUTPUT_FILE"
-    echo -e " ${CYAN}✨ Output File: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
+    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
 fi
 
 echo -e ""
@@ -267,6 +264,12 @@ grep -a "\." "$SUBDOM_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|�
 grep -a "\." "$CHAOS_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|├|┼|│)" | grep -va "projectdiscovery.io" >> "$ALL_SUBS_TMP"
 
 TOTAL_UNIQUE=$(sort -u "$ALL_SUBS_TMP" | grep -v "^$" | wc -l | awk '{print $1}')
+
+if [[ -n "$OUTPUT_FILE" ]]; then
+    sort -u "$ALL_SUBS_TMP" | grep -v "^$" > "$OUTPUT_FILE"
+    echo -e " ${CYAN}✨ All subdomains saved to: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
+fi
+
 rm -f "$ALL_SUBS_TMP"
 
 # Fallback to 0 if not found
