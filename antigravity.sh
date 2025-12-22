@@ -13,14 +13,17 @@ BOLD='\033[1m'
 # API Keys
 export PDCP_API_KEY="45c4a78e-957e-486f-80b9-f506362d9ae4"
 
-# Logs (Global scope)
+# Logs and Outputs (Global scope)
 SUBFINDER_LOG=$(mktemp)
 SUBDOM_LOG=$(mktemp)
 CHAOS_LOG=$(mktemp)
+SF_OUT=$(mktemp)
+SD_OUT=$(mktemp)
+CH_OUT=$(mktemp)
 
 # Cleanup function
 cleanup() {
-    rm -f "$SUBFINDER_LOG" "$SUBDOM_LOG" "$CHAOS_LOG"
+    rm -f "$SUBFINDER_LOG" "$SUBDOM_LOG" "$CHAOS_LOG" "$SF_OUT" "$SD_OUT" "$CH_OUT"
 }
 trap cleanup EXIT
 
@@ -117,7 +120,7 @@ echo -e " ${CYAN}✨ [Section 1] Starting Subfinder... ❤️${RESET}"
 echo -e ""
 
 # Construct command
-CMD="subfinder -v -all"
+CMD="subfinder -v -all -o $SF_OUT"
 
 if [[ -n "$DOMAIN" ]]; then
     CMD="$CMD -d $DOMAIN"
@@ -127,9 +130,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
     echo -e " ${CYAN}✨ Target List: ${YELLOW}$DOMAIN_LIST ❤️${RESET}"
 fi
 
-if [[ -n "$OUTPUT_FILE" ]]; then
-    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
-fi
+
 
 echo -e ""
 echo -e " ${MAGENTA}✨ Running Subfinder magic... please wait... ❤️${RESET}"
@@ -149,7 +150,7 @@ echo -e " ${CYAN}✨ [Section 2] Starting Subdominator... ❤️${RESET}"
 echo -e ""
 
 # Construct command args for expect
-SUBDOM_ARGS="-V -all"
+SUBDOM_ARGS="-V -all -o $SD_OUT"
 
 if [[ -n "$DOMAIN" ]]; then
     SUBDOM_ARGS="$SUBDOM_ARGS -d $DOMAIN"
@@ -159,9 +160,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
     echo -e " ${CYAN}✨ Target List: ${YELLOW}$DOMAIN_LIST ❤️${RESET}"
 fi
 
-if [[ -n "$OUTPUT_FILE" ]]; then
-    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
-fi
+
 
 echo -e ""
 echo -e " ${MAGENTA}✨ Running Subdominator magic... please wait... ❤️${RESET}"
@@ -215,7 +214,7 @@ echo -e " ${CYAN}✨ [Section 3] Starting Chaos... ❤️${RESET}"
 echo -e ""
 
 # Construct command
-CMD_CHAOS="chaos"
+CMD_CHAOS="chaos -o $CH_OUT"
 
 if [[ -n "$DOMAIN" ]]; then
     CMD_CHAOS="$CMD_CHAOS -d $DOMAIN"
@@ -225,9 +224,7 @@ elif [[ -n "$DOMAIN_LIST" ]]; then
     echo -e " ${CYAN}✨ Target List: ${YELLOW}$DOMAIN_LIST ❤️${RESET}"
 fi
 
-if [[ -n "$OUTPUT_FILE" ]]; then
-    echo -e " ${CYAN}✨ Output: ${YELLOW}Merging results to $OUTPUT_FILE at the end ❤️${RESET}"
-fi
+
 
 echo -e ""
 echo -e " ${MAGENTA}✨ Running Chaos magic... please wait... ❤️${RESET}"
@@ -240,42 +237,21 @@ echo -e ""
 echo -e " ${GREEN}✨ Chaos Completed! ❤️${RESET}"
 echo -e ""
 
-# ==========================================
-# SECTION 4: STATISTICS
-# ==========================================
-
-# Robust extraction using sed to strip colors and grep to find the numbers
-# Subfinder: [INF] Found 35 subdomains for ...
-# We use sed to extract the digit and ignore the rest of the line to avoid summing time
-SF_COUNT=$(grep -a "Found .* subdomains" "$SUBFINDER_LOG" | sed 's/\x1b\[[0-9;]*m//g' | sed -n 's/.*Found \([0-9,]*\) subdomains.*/\1/p' | sed 's/,//g' | awk '{s+=$1} END {print s}')
-
-# Subdominator: [INFO]: Total 177 subdomains found for ...
-SD_COUNT=$(grep -a "Total .* subdomains found" "$SUBDOM_LOG" | sed 's/\x1b\[[0-9;]*m//g' | grep -o "Total [0-9]\+" | awk '{print $2}' | awk '{s+=$1} END {print s}')
-
-# Chaos: No summary line, so we count lines in log that look like subdomains
-# Exclude lines starting with [, space, tab, or banner characters
-CH_COUNT=$(grep -a "\." "$CHAOS_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|├|┼|│)" | grep -va "projectdiscovery.io" | sort -u | wc -l | awk '{print $1}')
+# Get accurate counts from clean output files
+SF_COUNT=$(wc -l < "$SF_OUT" | awk '{print $1}')
+SD_COUNT=$(wc -l < "$SD_OUT" | awk '{print $1}')
+CH_COUNT=$(wc -l < "$CH_OUT" | awk '{print $1}')
 
 # Calculate Total Unique
 ALL_SUBS_TMP=$(mktemp)
-# Extract from all logs using similar logic
-grep -a "\." "$SUBFINDER_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|├|┼|│)" | grep -va "projectdiscovery.io" >> "$ALL_SUBS_TMP"
-grep -a "\." "$SUBDOM_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|├|┼|│)" | grep -vaE "(RevoltSecurities|Loading provider)" >> "$ALL_SUBS_TMP"
-grep -a "\." "$CHAOS_LOG" | grep -vaE "^(\[| |	|___|/|✨|─|└|┴|┬|┤|├|┼|│)" | grep -va "projectdiscovery.io" >> "$ALL_SUBS_TMP"
-
+cat "$SF_OUT" "$SD_OUT" "$CH_OUT" > "$ALL_SUBS_TMP"
 TOTAL_UNIQUE=$(sort -u "$ALL_SUBS_TMP" | grep -v "^$" | wc -l | awk '{print $1}')
-
-if [[ -n "$OUTPUT_FILE" ]]; then
-    sort -u "$ALL_SUBS_TMP" | grep -v "^$" > "$OUTPUT_FILE"
-    echo -e " ${CYAN}✨ All subdomains saved to: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
-fi
-
 rm -f "$ALL_SUBS_TMP"
 
-# Fallback to 0 if not found
-if [[ -z "$SF_COUNT" ]]; then SF_COUNT="0"; fi
-if [[ -z "$SD_COUNT" ]]; then SD_COUNT="0"; fi
-if [[ -z "$CH_COUNT" ]]; then CH_COUNT="0"; fi
+# Fallback to 0 if empty
+SF_COUNT=${SF_COUNT:-0}
+SD_COUNT=${SD_COUNT:-0}
+CH_COUNT=${CH_COUNT:-0}
 
 echo -e "${MAGENTA}========================================${RESET}"
 echo -e "${YELLOW}           ✨ STATISTICS ✨             ${RESET}"
@@ -286,4 +262,12 @@ echo -e " ${CYAN}Chaos Found        :${RESET} ${GREEN}${CH_COUNT}${RESET}"
 echo -e "${MAGENTA}----------------------------------------${RESET}"
 echo -e " ${BOLD}${YELLOW}Total Unique Found :${RESET} ${BOLD}${GREEN}${TOTAL_UNIQUE}${RESET}"
 echo -e "${MAGENTA}========================================${RESET}"
+
+# Save to output file if specified
+if [[ -n "$OUTPUT_FILE" ]]; then
+    echo -e " ${CYAN}✨ Saving Unique Subdomains to: ${YELLOW}$OUTPUT_FILE ❤️${RESET}"
+    cat "$SF_OUT" "$SD_OUT" "$CH_OUT" | sort -u | grep -v "^$" > "$OUTPUT_FILE"
+    echo -e " ${GREEN}✨ Done! Subdomains saved to $OUTPUT_FILE ✨${RESET}"
+fi
+
 echo -e ""
