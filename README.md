@@ -18,3 +18,5 @@ bash subfinder+subdominator.sh -dL domains.txt
 # Save to File (Optional)
 bash subfinder+subdominator.sh -d example.com -o results.txt
 ```
+
+I Hope You Like It
